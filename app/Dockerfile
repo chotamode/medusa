@@ -48,8 +48,11 @@ RUN cd .medusa/server && \
 # --- runner: minimal production image --------------------------------------
 FROM base AS runner
 ENV NODE_ENV=production \
-    PORT=9000
-RUN groupadd -r medusa && useradd -r -g medusa medusa
+    PORT=9000 \
+    HOME=/home/medusa
+# Create the user WITH a home directory: the Medusa CLI (configstore) writes to
+# $HOME/.config/medusa on startup, so a writable home is required.
+RUN groupadd -r medusa && useradd -r -g medusa -m -d /home/medusa medusa
 COPY --from=build --chown=medusa:medusa /app/.medusa/server ./
 COPY --chown=medusa:medusa docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
