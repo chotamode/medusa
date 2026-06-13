@@ -62,6 +62,9 @@ services:
   postgres:
     image: postgres:16-alpine
     restart: unless-stopped
+    # Medusa v2 opens many connections (one+ per module), so the default
+    # max_connections=100 can be exhausted during migrations/startup.
+    command: ["postgres", "-c", "max_connections=200"]
     environment:
       POSTGRES_USER: medusa
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-medusa}
