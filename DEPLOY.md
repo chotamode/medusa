@@ -66,9 +66,32 @@ You don't have to use the all-in-one stack. You can deploy just the app:
    the `JWT_SECRET` / `COOKIE_SECRET` / `*_CORS` vars (see
    [`app/.env.template`](./app/.env.template)).
 
+## Scaling: server + worker split (optional)
+
+By default the app runs in `MEDUSA_WORKER_MODE=shared` — one container handles
+both the API/admin and background jobs. This is perfectly fine for a small
+self-hosted store.
+
+The [official Medusa guide](https://docs.medusajs.com/learn/deployment/general)
+recommends, for production scale, running **two** instances of the same image
+that share the same Postgres + Redis:
+
+| Instance | Env |
+| --- | --- |
+| **server** (API + admin) | `MEDUSA_WORKER_MODE=server`, `DISABLE_MEDUSA_ADMIN=false` |
+| **worker** (jobs/subscribers) | `MEDUSA_WORKER_MODE=worker`, `DISABLE_MEDUSA_ADMIN=true` |
+
+In Coolify just deploy this app a second time with the worker env vars. When you
+split instances, also add the **Redis locking module** (and optionally Redis
+caching) so the two processes coordinate — see the official guide's "Install
+Production Modules" section. For a single shared instance you don't need them.
+
+`medusa-config.ts` already reads `MEDUSA_WORKER_MODE`, `DISABLE_MEDUSA_ADMIN`
+and `MEDUSA_BACKEND_URL`, so no code changes are needed to split.
+
 ## Multi-architecture builds
 
-The base `node:20-alpine` images are published for amd64, arm64 and arm/v7, so
+The base `node:20-bookworm-slim` images are published for amd64 and arm64, so
 `docker build` on your ARM VPS produces a native image. To build one image that
 runs everywhere and push it to a registry:
 
