@@ -30,7 +30,7 @@ COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* .npmrc* ./
 RUN \
   if [ -f yarn.lock ]; then corepack enable && yarn install --frozen-lockfile; \
   elif [ -f pnpm-lock.yaml ]; then corepack enable && pnpm install --frozen-lockfile; \
-  else npm install --no-audit --no-fund; fi
+  else npm install --no-audit --no-fund --legacy-peer-deps; fi
 
 # --- build: compile server + bundle admin dashboard ------------------------
 FROM deps AS build
@@ -38,9 +38,12 @@ COPY . .
 ENV NODE_ENV=production
 RUN npm run build
 # Install prod-only deps inside the build output for a lean runtime.
+# .medusa/server is a generated package without our root .npmrc, so pass
+# --legacy-peer-deps explicitly (Medusa's optional peer deps trip npm's strict
+# resolver otherwise).
 RUN cd .medusa/server && \
   if [ -f /app/yarn.lock ]; then corepack enable && yarn install --frozen-lockfile --production; \
-  else npm install --omit=dev --no-audit --no-fund; fi
+  else npm install --omit=dev --no-audit --no-fund --legacy-peer-deps; fi
 
 # --- runner: minimal production image --------------------------------------
 FROM base AS runner
